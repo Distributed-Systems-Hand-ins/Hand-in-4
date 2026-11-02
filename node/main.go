@@ -8,8 +8,19 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"net"
+	"sync"
+	"time"
+	"math/rand"
 	pb "ricart-agrawala/proto"
 )
+
+const (
+	Released = "RELEASED"
+	Wanted   = "WANTED"
+	Held     = "HELD"
+)
+
+var clients []pb.MutexClient
 
 var addresses = map[int]string{
 	1: "localhost:5001",
@@ -20,7 +31,7 @@ var addresses = map[int]string{
 func main() {
 	id := flag.Int("id", 1, "node id") // default id is 1
 	flag.Parse()                       // parse command line flags
-	node := &Node{id: int32(*id)}      // create a new node with the given id
+	node := &Node{id: int32(*id), state: Released}      // create a new node with the given id
 	fmt.Println("Starting node ", *id) // print the node id
 	listener, err := net.Listen("tcp", addresses[*id])
 	if err != nil {
@@ -39,23 +50,44 @@ func main() {
 			log.Fatal(err)
 		}
 		client := pb.NewMutexClient(conn)
+		clients = append(clients, client)
+		
+	}
+
+	for {
+		time.Sleep(time.Duration(1000+rand.Intn(2000)) * time.Millisecond)
+		node.mu.Lock()
+		node.state = Wanted
+		node.clock++
+		node.myTicket = node.clock
+		fmt.Println("Node", node.id, "is requesting access to the critical section with ticket", node.myTicket)
+		node.mu.Unlock()
+
+		for _, client := range clients {
 		reply, err := client.RequestAccess(context.Background(), &pb.Request{NodeId: node.id}, grpc.WaitForReady(true))
 		if err != nil {
 			log.Fatal(err)
 		}
+		
 		fmt.Println("Got reply from node", reply.NodeId)
+
 	}
-
-	select {}
-
+	}
 }
 
 func (n *Node) RequestAccess(ctx context.Context, req *pb.Request) (*pb.Reply, error) {
-	fmt.Println("Got a request from node", req.NodeId)
-	return &pb.Reply{NodeId: n.id}, nil
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.clock = max(n.clock, req.Timestamp) + 1
+	fmt.Println("Got a request from node", req.NodeId, "with timestamp", req.Timestamp, "current clock is", n.clock)
+	return &pb.Reply{NodeId: n.id, Timestamp: n.clock}, nil
 }
 
 type Node struct {
 	id int32
 	pb.UnimplementedMutexServer
+	state string
+	clock int64
+	myTicket int64
+	mu sync.Mutex
 }
