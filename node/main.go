@@ -7,11 +7,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
+	"math/rand"
 	"net"
+	pb "ricart-agrawala/proto"
 	"sync"
 	"time"
-	"math/rand"
-	pb "ricart-agrawala/proto"
 )
 
 const (
@@ -29,10 +29,11 @@ var addresses = map[int]string{
 }
 
 func main() {
-	id := flag.Int("id", 1, "node id") // default id is 1
-	flag.Parse()                       // parse command line flags
-	node := &Node{id: int32(*id), state: Released}      // create a new node with the given id
-	fmt.Println("Starting node ", *id) // print the node id
+	id := flag.Int("id", 1, "node id")             // default id is 1
+	flag.Parse()                                   // parse command line flags
+	node := &Node{id: int32(*id), state: Released} // create a new node with the given id
+	node.cond = sync.NewCond(&node.mu)                // initialize the condition variable
+	fmt.Println("Starting node ", *id)             // print the node id
 	listener, err := net.Listen("tcp", addresses[*id])
 	if err != nil {
 		log.Fatal(err)
@@ -51,7 +52,7 @@ func main() {
 		}
 		client := pb.NewMutexClient(conn)
 		clients = append(clients, client)
-		
+
 	}
 
 	for {
@@ -61,17 +62,34 @@ func main() {
 		node.clock++
 		node.myTicket = node.clock
 		fmt.Println("Node", node.id, "is requesting access to the critical section with ticket", node.myTicket)
+		ticket := node.myTicket
 		node.mu.Unlock()
 
 		for _, client := range clients {
-		reply, err := client.RequestAccess(context.Background(), &pb.Request{NodeId: node.id}, grpc.WaitForReady(true))
-		if err != nil {
-			log.Fatal(err)
-		}
-		
-		fmt.Println("Got reply from node", reply.NodeId)
+			reply, err := client.RequestAccess(context.Background(), &pb.Request{NodeId: node.id, Timestamp: ticket}, grpc.WaitForReady(true))
+			if err != nil {
+				log.Fatal(err)
+			}
 
-	}
+			fmt.Println("Got reply from node", reply.NodeId)
+
+			replyTimestamp := reply.Timestamp
+			node.mu.Lock()
+			node.clock = max(node.clock, replyTimestamp) + 1
+			node.mu.Unlock()
+		}
+		node.mu.Lock()
+		node.state = Held
+		node.mu.Unlock()
+		log.Println("Node", node.id, "ENTER CS")
+		time.Sleep(time.Second)
+		log.Println("Node", node.id, "EXIT CS")
+
+		node.mu.Lock()
+		node.state = Released
+		node.cond.Broadcast()
+		node.mu.Unlock()
+		
 	}
 }
 
@@ -80,14 +98,26 @@ func (n *Node) RequestAccess(ctx context.Context, req *pb.Request) (*pb.Reply, e
 	defer n.mu.Unlock()
 	n.clock = max(n.clock, req.Timestamp) + 1
 	fmt.Println("Got a request from node", req.NodeId, "with timestamp", req.Timestamp, "current clock is", n.clock)
+	for n.shouldWait(req) {
+		n.cond.Wait()	
+	}
+	log.Println("Node", n.id, "is granting access to node", req.NodeId)
 	return &pb.Reply{NodeId: n.id, Timestamp: n.clock}, nil
+}
+
+func (n *Node) shouldWait(req *pb.Request) bool {
+	if n.state == Held || (n.state == Wanted && (req.Timestamp > n.myTicket || (req.Timestamp == n.myTicket && req.NodeId > n.id))) {
+		return true
+	}
+	return false
 }
 
 type Node struct {
 	id int32
 	pb.UnimplementedMutexServer
-	state string
-	clock int64
+	state    string
+	clock    int64
 	myTicket int64
-	mu sync.Mutex
+	mu       sync.Mutex
+	cond	 *sync.Cond
 }
