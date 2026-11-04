@@ -1,6 +1,3 @@
-- Provide a README.md file in your source code repository that
-  explains how to start your system
-
   ## How to run our program:
 
 Requires Go (see the version in `go.mod`). Run everything from the project root (log files are written to the current
@@ -16,12 +13,5 @@ go run ./node -id 2
 go run ./node -id 3
 ```
 
-Each client logs to `client-<name>.log`.
-
-**2. Chat**
-
-- Type a message and press Enter to publish it (max 128 UTF-8 characters).
-- Type `/leave` or press Ctrl+C to leave.
-- Stop the server with Ctrl+C in the server terminal.
-
-Every received message is shown as `[<lamport time>] <sender>: <content>`.
+Start all three nodes within a few seconds of each other. They will locate each other.
+Each node will now request access to the critical section. Only one node can have access at a time, so they will determine an order by comparing their Lamport clocks and node IDs. 
