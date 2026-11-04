@@ -1,0 +1,45 @@
+14:59:46.043972 Starting node  3
+14:59:47.877174 Got a request from node 2 with timestamp 1 current clock is 2
+14:59:47.877174 Node 3 is granting access to node 2
+14:59:48.325686 Node 3 is requesting access to the critical section with ticket 3
+14:59:48.885062 Got a request from node 1 with timestamp 3 current clock is 4
+14:59:48.885628 Node 3 is granting access to node 1
+14:59:49.887298 Got reply from node 1
+14:59:49.890789 Got reply from node 2
+14:59:49.890789 Node 3 ENTER CS
+14:59:50.891071 Node 3 EXIT CS
+14:59:51.470161 Got a request from node 2 with timestamp 7 current clock is 10
+14:59:51.470161 Node 3 is granting access to node 2
+14:59:52.222429 Node 3 is requesting access to the critical section with ticket 11
+14:59:52.472801 Got a request from node 1 with timestamp 9 current clock is 12
+14:59:52.475675 Node 3 is granting access to node 1
+14:59:53.477871 Got reply from node 1
+14:59:53.478981 Got reply from node 2
+14:59:53.478981 Node 3 ENTER CS
+14:59:54.479460 Node 3 EXIT CS
+14:59:54.684005 Got a request from node 1 with timestamp 16 current clock is 18
+14:59:54.684610 Node 3 is granting access to node 1
+14:59:55.032489 Got a request from node 2 with timestamp 18 current clock is 19
+14:59:55.032489 Node 3 is granting access to node 2
+14:59:56.309614 Node 3 is requesting access to the critical section with ticket 20
+14:59:56.310634 Got reply from node 1
+14:59:56.686708 Got reply from node 2
+14:59:56.686708 Node 3 ENTER CS
+14:59:57.237787 Got a request from node 1 with timestamp 22 current clock is 24
+14:59:57.686910 Node 3 EXIT CS
+14:59:57.686910 Node 3 is granting access to node 1
+14:59:58.944491 Got a request from node 2 with timestamp 24 current clock is 25
+14:59:58.945268 Node 3 is granting access to node 2
+14:59:59.616013 Node 3 is requesting access to the critical section with ticket 26
+14:59:59.616535 Got reply from node 1
+14:59:59.948300 Got reply from node 2
+14:59:59.948300 Node 3 ENTER CS
+15:00:00.894074 Got a request from node 1 with timestamp 28 current clock is 30
+15:00:00.948848 Node 3 EXIT CS
+15:00:00.948848 Node 3 is granting access to node 1
+15:00:01.829433 Got a request from node 2 with timestamp 30 current clock is 31
+15:00:01.829433 Node 3 is granting access to node 2
+15:00:02.683296 Node 3 is requesting access to the critical section with ticket 32
+15:00:02.684031 Got reply from node 1
+15:00:02.951966 Got reply from node 2
+15:00:02.951966 Node 3 ENTER CS

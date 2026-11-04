@@ -12,6 +12,8 @@ import (
 	pb "ricart-agrawala/proto"
 	"sync"
 	"time"
+	"io"
+	"os"
 )
 
 const (
@@ -30,10 +32,16 @@ var addresses = map[int]string{
 
 func main() {
 	id := flag.Int("id", 1, "node id")             // default id is 1
-	flag.Parse()                                   // parse command line flags
+	flag.Parse()
+	file, err := os.Create(fmt.Sprintf("node%d.log", *id))
+if err != nil {
+	log.Fatal(err)
+}
+log.SetOutput(io.MultiWriter(os.Stdout, file))
+log.SetFlags(log.Ltime | log.Lmicroseconds)                                   // parse command line flags
 	node := &Node{id: int32(*id), state: Released} // create a new node with the given id
 	node.cond = sync.NewCond(&node.mu)                // initialize the condition variable
-	fmt.Println("Starting node ", *id)             // print the node id
+	log.Println("Starting node ", *id)             // print the node id
 	listener, err := net.Listen("tcp", addresses[*id])
 	if err != nil {
 		log.Fatal(err)
@@ -61,7 +69,7 @@ func main() {
 		node.state = Wanted
 		node.clock++
 		node.myTicket = node.clock
-		fmt.Println("Node", node.id, "is requesting access to the critical section with ticket", node.myTicket)
+		log.Println("Node", node.id, "is requesting access to the critical section with ticket", node.myTicket)
 		ticket := node.myTicket
 		node.mu.Unlock()
 
@@ -71,7 +79,7 @@ func main() {
 				log.Fatal(err)
 			}
 
-			fmt.Println("Got reply from node", reply.NodeId)
+			log.Println("Got reply from node", reply.NodeId)
 
 			replyTimestamp := reply.Timestamp
 			node.mu.Lock()
@@ -97,7 +105,7 @@ func (n *Node) RequestAccess(ctx context.Context, req *pb.Request) (*pb.Reply, e
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	n.clock = max(n.clock, req.Timestamp) + 1
-	fmt.Println("Got a request from node", req.NodeId, "with timestamp", req.Timestamp, "current clock is", n.clock)
+	log.Println("Got a request from node", req.NodeId, "with timestamp", req.Timestamp, "current clock is", n.clock)
 	for n.shouldWait(req) {
 		n.cond.Wait()	
 	}
