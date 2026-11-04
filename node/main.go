@@ -32,13 +32,13 @@ var addresses = map[int]string{
 
 func main() {
 	id := flag.Int("id", 1, "node id")             // default id is 1
-	flag.Parse()
+	flag.Parse()                                   // parse command line flags
 	file, err := os.Create(fmt.Sprintf("node%d.log", *id))
 if err != nil {
 	log.Fatal(err)
 }
 log.SetOutput(io.MultiWriter(os.Stdout, file))
-log.SetFlags(log.Ltime | log.Lmicroseconds)                                   // parse command line flags
+log.SetFlags(log.Ltime | log.Lmicroseconds)                                  
 	node := &Node{id: int32(*id), state: Released} // create a new node with the given id
 	node.cond = sync.NewCond(&node.mu)                // initialize the condition variable
 	log.Println("Starting node ", *id)             // print the node id
