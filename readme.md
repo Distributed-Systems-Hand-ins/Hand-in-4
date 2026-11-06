@@ -13,5 +13,5 @@ go run ./node -id 2
 go run ./node -id 3
 ```
 
-Start all three nodes within a few seconds of each other. They will locate each other.
+Start all three nodes within a few seconds of each other. The adresses of each node are hardcoded in main.go, ports 5001–5003, so the nodes know the location of each other.
 Each node will now request access to the critical section. Only one node can have access at a time, so they will determine an order by comparing their Lamport clocks and node IDs. 
