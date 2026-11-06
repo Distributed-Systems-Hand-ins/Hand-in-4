@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"io"
 	"log"
 	"math/rand"
 	"net"
+	"os"
 	pb "ricart-agrawala/proto"
 	"sync"
 	"time"
-	"io"
-	"os"
 )
 
 const (
@@ -31,16 +31,16 @@ var addresses = map[int]string{
 }
 
 func main() {
-	id := flag.Int("id", 1, "node id")             // default id is 1
-	flag.Parse()                                   // parse command line flags
+	id := flag.Int("id", 1, "node id") // default id is 1
+	flag.Parse()                       // parse command line flags
 	file, err := os.Create(fmt.Sprintf("node%d.log", *id))
-if err != nil {
-	log.Fatal(err)
-}
-log.SetOutput(io.MultiWriter(os.Stdout, file))
-log.SetFlags(log.Ltime | log.Lmicroseconds)                                  
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetOutput(io.MultiWriter(os.Stdout, file))
+	log.SetFlags(log.Ltime | log.Lmicroseconds)
 	node := &Node{id: int32(*id), state: Released} // create a new node with the given id
-	node.cond = sync.NewCond(&node.mu)                // initialize the condition variable
+	node.cond = sync.NewCond(&node.mu)             // initialize the condition variable
 	log.Println("Starting node ", *id)             // print the node id
 	listener, err := net.Listen("tcp", addresses[*id])
 	if err != nil {
@@ -97,7 +97,6 @@ log.SetFlags(log.Ltime | log.Lmicroseconds)
 		node.state = Released
 		node.cond.Broadcast()
 		node.mu.Unlock()
-		
 	}
 }
 
@@ -107,7 +106,7 @@ func (n *Node) RequestAccess(ctx context.Context, req *pb.Request) (*pb.Reply, e
 	n.clock = max(n.clock, req.Timestamp) + 1
 	log.Println("Got a request from node", req.NodeId, "with timestamp", req.Timestamp, "current clock is", n.clock)
 	for n.ShouldWait(req) {
-		n.cond.Wait()	
+		n.cond.Wait()
 	}
 	log.Println("Node", n.id, "is granting access to node", req.NodeId)
 	return &pb.Reply{NodeId: n.id, Timestamp: n.clock}, nil
@@ -127,5 +126,5 @@ type Node struct {
 	clock    int64
 	myTicket int64
 	mu       sync.Mutex
-	cond	 *sync.Cond
+	cond     *sync.Cond
 }
