@@ -106,14 +106,14 @@ func (n *Node) RequestAccess(ctx context.Context, req *pb.Request) (*pb.Reply, e
 	defer n.mu.Unlock()
 	n.clock = max(n.clock, req.Timestamp) + 1
 	log.Println("Got a request from node", req.NodeId, "with timestamp", req.Timestamp, "current clock is", n.clock)
-	for n.shouldWait(req) {
+	for n.ShouldWait(req) {
 		n.cond.Wait()	
 	}
 	log.Println("Node", n.id, "is granting access to node", req.NodeId)
 	return &pb.Reply{NodeId: n.id, Timestamp: n.clock}, nil
 }
 
-func (n *Node) shouldWait(req *pb.Request) bool {
+func (n *Node) ShouldWait(req *pb.Request) bool {
 	if n.state == Held || (n.state == Wanted && (req.Timestamp > n.myTicket || (req.Timestamp == n.myTicket && req.NodeId > n.id))) {
 		return true
 	}
